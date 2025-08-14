@@ -1,0 +1,1616 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Krachtsport Schema V22</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .hidden { display: none !important; }
+        .tab-active { background-color: white; color: rgb(37 99 235); box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
+        .tab-inactive { color: rgb(75 85 99); }
+        .tab-inactive:hover { color: rgb(17 24 39); }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, rgb(37 99 235), rgb(29 78 216));
+        }
+        
+        .exercise-card {
+            transition: all 0.3s ease;
+            border: 2px solid rgb(229 231 235);
+        }
+        
+        .exercise-card:hover {
+            border-color: rgb(156 163 175);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .set-row:hover {
+            background-color: rgb(243 244 246);
+        }
+        
+        .motivational-quote {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Save Dialog -->
+    <div id="save-dialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full">
+            <h3 id="save-dialog-title" class="text-lg font-bold text-gray-900 mb-4"></h3>
+            <p id="save-dialog-text" class="text-gray-700 mb-6"></p>
+            <div id="save-dialog-buttons" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
+        <div class="max-w-4xl mx-auto px-6 py-4">
+            <h1 class="text-2xl font-bold text-gray-900 text-center">Krachtsport Schema</h1>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto px-6 py-4">
+        <!-- Tab Navigation -->
+        <div class="flex bg-gray-100 rounded-xl p-1 mb-6">
+            <button id="tab-training" class="flex-1 py-2 px-4 rounded-lg font-medium transition-all tab-active">
+                Training
+            </button>
+            <button id="tab-schemas" class="flex-1 py-2 px-4 rounded-lg font-medium transition-all tab-inactive">
+                📋 Schema's
+            </button>
+            <button id="tab-history" class="flex-1 py-2 px-4 rounded-lg font-medium transition-all tab-inactive">
+                Trainingslog
+            </button>
+            <button id="tab-progress" class="flex-1 py-2 px-4 rounded-lg font-medium transition-all tab-inactive">
+                📈 Progressie
+            </button>
+        </div>
+
+        <!-- Export/Import buttons -->
+        <div class="flex justify-center gap-3 mb-6">
+            <button id="export-btn" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all font-medium flex items-center gap-2">
+                📥 Backup Exporteren
+            </button>
+            <label class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all font-medium cursor-pointer flex items-center gap-2">
+                📤 Backup Importeren
+                <input type="file" accept=".json" id="import-file" class="hidden">
+            </label>
+        </div>
+
+        <!-- Training Tab -->
+        <div id="training-content">
+            <!-- Training Setup Screen -->
+            <div id="training-setup" class="bg-white rounded-2xl p-8 shadow-sm border border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 text-center">Training Setup</h2>
+                
+                <div class="space-y-6 max-w-md mx-auto">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Datum</label>
+                        <input type="date" id="training-date" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center">
+                        <p id="date-display" class="text-center mt-2 text-blue-600 font-medium"></p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Schema</label>
+                        <select id="schema-select" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium">
+                        </select>
+                    </div>
+
+                    <div id="schema-preview" class="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                        <h4 class="font-semibold text-blue-900 mb-2">Oefeningen in dit schema:</h4>
+                        <div id="schema-exercises" class="text-sm text-blue-800 space-y-1"></div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Week nummer</label>
+                            <input type="number" min="1" id="week-number" value="1" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Training nummer</label>
+                            <select id="training-number" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="auto-suggest-container" class="text-center hidden">
+                        <button id="auto-suggest-btn" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center gap-2 mx-auto">
+                            ⚡ Automatisch instellen n.a.v. vorige training
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Reps</label>
+                            <select id="training-reps" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center">
+                                <option value="6">6</option>
+                                <option value="8">8</option>
+                                <option value="10">10</option>
+                                <option value="12" selected>12</option>
+                                <option value="15">15</option>
+                                <option value="20">20</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">Sets</label>
+                            <select id="training-sets" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3" selected>3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">Rust tussen sets</label>
+                        <select id="training-rest" class="w-full p-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center">
+                            <option value="1">1 min</option>
+                            <option value="1.5">1.5 min</option>
+                            <option value="2" selected>2 min</option>
+                            <option value="2.5">2.5 min</option>
+                        </select>
+                    </div>
+
+                    <div class="pt-4">
+                        <button id="start-training-btn" class="w-full gradient-bg text-white py-4 rounded-xl text-lg font-semibold hover:shadow-lg transition-all transform hover:scale-105">
+                            🚀 Start Training
+                        </button>
+                    </div>
+                </div>
+
+                <div id="recent-workouts" class="mt-8 pt-6 border-t border-gray-200 hidden">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4 text-center">Recente Trainingen</h3>
+                    <div id="recent-workouts-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+
+            <!-- Training Screen -->
+            <div id="training-screen" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hidden">
+                <div class="gradient-bg text-white p-6 text-center">
+                    <h2 id="workout-title" class="text-2xl font-bold mb-2"></h2>
+                    <p id="workout-date" class="text-blue-100 font-medium text-lg mb-1"></p>
+                    <p id="workout-setup" class="text-blue-200 text-sm"></p>
+                    <p id="workout-schema" class="text-blue-200 text-sm"></p>
+                    <p id="rest-days-info" class="text-orange-200 text-sm mt-1 hidden"></p>
+                </div>
+
+                <div class="p-4 border-b border-gray-200 text-center">
+                    <button id="cancel-training-btn" class="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-all font-medium">
+                        ✕ Annuleren
+                    </button>
+                </div>
+
+                <div class="p-6 space-y-8">
+                    <div id="preworkout-section" class="bg-orange-50 rounded-xl p-6 border border-orange-200">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Pre-workout</h3>
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-3">Pre-workout voeding</label>
+                                <div id="preworkout-foods" class="space-y-2 max-h-32 overflow-y-auto"></div>
+                                <input type="text" id="preworkout-other" placeholder="Wat anders heb je gegeten?" class="w-full mt-3 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none hidden">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Timing (minuten ervoor)</label>
+                                <input type="number" id="preworkout-timing" placeholder="bijv. 30" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium">
+                                <p class="text-xs text-gray-500 mt-1">Voor alle geselecteerde voeding</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="feeling-before-section" class="bg-green-50 rounded-xl p-6 border border-green-200">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Gevoel voor training</h3>
+                        
+                        <div id="motivational-quote" class="motivational-quote mb-4 flex items-center justify-between">
+                            <p id="quote-text" class="text-gray-700 italic font-medium"></p>
+                            <button id="refresh-quote" class="text-gray-500 hover:text-gray-700 p-1 rounded transition-colors" title="Nieuwe quote">
+                                🔄
+                            </button>
+                        </div>
+                        
+                        <textarea id="feeling-before" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none" rows="3" placeholder="Hoe voel je je? Motivatie level? Energie?"></textarea>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="flex justify-between items-center">
+                            <h3 class="text-xl font-bold text-gray-900">Oefeningen</h3>
+                            <div class="flex gap-3">
+                                <select id="favorite-exercise-select" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium">
+                                    <option value="">Kies favoriete oefening</option>
+                                </select>
+                                <button id="add-exercise-btn" class="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-all font-semibold">
+                                    + Nieuwe Oefening
+                                </button>
+                            </div>
+                        </div>
+                        <div id="exercises-container"></div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <div class="bg-purple-50 rounded-xl p-6 border border-purple-200">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">Gevoel na training</h3>
+                            <textarea id="feeling-after" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none" rows="3" placeholder="Hoe voel je je na de training? Moe? Energiek? Tevreden met prestatie?"></textarea>
+                            
+                            <div class="mt-4">
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Overall training cijfer (G1-G10)</label>
+                                <select id="overall-grade" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium">
+                                    <option value="">Selecteer cijfer</option>
+                                </select>
+                                <p class="text-xs text-gray-500 mt-1">G1=verschrikkelijk, G5=gemiddeld, G10=perfect</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                            <h3 class="text-lg font-bold text-gray-900 mb-4">Opmerkingen</h3>
+                            <textarea id="training-notes" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none" rows="4" placeholder="Algemene opmerkingen, bijzonderheden, aanpassingen..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="text-center pt-4">
+                        <button id="save-training-btn" class="bg-green-600 text-white px-12 py-4 rounded-xl text-lg font-bold hover:bg-green-700 transition-all shadow-lg transform hover:scale-105">
+                            💾 Sla Training Op
+                        </button>
+                        <p class="text-sm text-gray-500 mt-2">Training wordt automatisch bewaard tijdens het typen</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schema's Tab -->
+        <div id="schemas-content" class="hidden">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">Schema Beheer</h2>
+                
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Workout Schema's</h3>
+                    <div id="schemas-list" class="space-y-4"></div>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Pre-workout Opties</h3>
+                    <div class="border border-gray-200 rounded-xl p-6">
+                        <p class="text-sm text-gray-600 mb-4">
+                            Pas je eigen pre-workout opties aan. Deze verschijnen in de training.
+                        </p>
+                        <div id="preworkout-options-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                        <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <p class="text-sm text-gray-600">
+                                <strong>Let op:</strong> "Niets" en "Anders" zijn altijd beschikbaar en hoeven niet hier toegevoegd te worden.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Motiverende Teksten</h3>
+                    <div class="border border-gray-200 rounded-xl p-6">
+                        <div class="flex justify-between items-center mb-4">
+                            <p class="text-sm text-gray-600">
+                                Voeg je eigen motiverende teksten toe. Bij elke training krijg je er random een te zien.
+                            </p>
+                            <button id="add-quote-btn" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 transition-all text-sm font-medium">
+                                + Toevoegen
+                            </button>
+                        </div>
+                        
+                        <div id="quotes-container" class="space-y-3 max-h-64 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-content" class="hidden">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                <h2 class="text-xl font-bold text-gray-900 mb-6">Trainingslog</h2>
+                
+                <div id="edit-dialog" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+                    <div class="bg-white rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
+                        <h3 class="text-lg font-bold text-gray-900 mb-4">Training Bewerken</h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Datum</label>
+                                <input type="date" id="edit-date" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Week nummer</label>
+                                    <input type="number" min="1" id="edit-week" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                </div>
+                                
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">Training nummer</label>
+                                    <select id="edit-training" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                        <option value="6">6</option>
+                                        <option value="7">7</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Overall cijfer</label>
+                                <select id="edit-grade" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                                    <option value="">Geen cijfer</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-semibold text-gray-700 mb-2">Opmerkingen</label>
+                                <textarea id="edit-notes" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none" rows="3" placeholder="Opmerkingen..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-6">
+                            <button id="save-edit-btn" class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-all font-semibold">
+                                💾 Opslaan
+                            </button>
+                            <button id="cancel-edit-btn" class="flex-1 bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-all font-semibold">
+                                ✕ Annuleren
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="workouts-list">
+                    <div class="text-center py-12 text-gray-500">
+                        <p class="text-lg font-medium">Nog geen trainingen opgeslagen</p>
+                        <p class="text-sm">Start je eerste training om een log op te bouwen</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Tab -->
+        <div id="progress-content" class="hidden">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-200">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xl font-bold text-gray-900">Progressie Tracking</h2>
+                    <select id="progress-timeframe" class="p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium">
+                        <option value="1">Laatste maand</option>
+                        <option value="3" selected>Laatste 3 maanden</option>
+                        <option value="6">Laatste 6 maanden</option>
+                        <option value="12">Laatste jaar</option>
+                    </select>
+                </div>
+
+                <div id="progress-charts">
+                    <div class="text-center py-12 text-gray-500">
+                        <p class="text-lg font-medium">📈</p>
+                        <p class="text-lg font-medium">Nog geen trainingsdata</p>
+                        <p class="text-sm">Start een training om je progressie te kunnen volgen</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // App state
+        let appState = {
+            workouts: JSON.parse(localStorage.getItem('krachtsport_workouts') || '[]'),
+            currentWorkout: null,
+            editingWorkout: null,
+            activeTab: 'training',
+            schemas: {
+                'basis': {
+                    name: 'Basis',
+                    exercises: ['Squats', 'Deadlifts', 'Hip thrust', 'Bulgarian splits', 'Bend over dumbel row', 'Dumbel press'],
+                    locked: true
+                },
+                'workout2': { name: 'Workout 2', exercises: [], locked: false },
+                'workout3': { name: 'Workout 3', exercises: [], locked: false },
+                'workout4': { name: 'Workout 4', exercises: [], locked: false },
+                'workout5': { name: 'Workout 5', exercises: [], locked: false },
+                'workout6': { name: 'Workout 6', exercises: [], locked: false },
+                'workout7': { name: 'Workout 7', exercises: [], locked: false },
+                'workout8': { name: 'Workout 8', exercises: [], locked: false },
+                'workout9': { name: 'Workout 9', exercises: [], locked: false },
+                'blanco': { name: 'Blanco', exercises: [], locked: true }
+            },
+            preWorkoutOptions: [
+                'Protein bar (heel)', 'Protein bar (half)', 'Banaan (heel)', 'Banaan (half)', 
+                'Amino tablet', 'Lunch', 'Ontbijt', 'Diner', 'Koffie'
+            ],
+            motivationalQuotes: [
+                '💪 Stronger than yesterday',
+                '🔥 You got this!',
+                '🎯 Every rep counts!',
+                '⚡ Je traint niet om beter te worden dan een ander, maar om de betere versie van jezelf te worden',
+                '🚀 Beast mode activated!',
+                '💎 Diamonds are made under pressure',
+                '🏆 Champions train when they don\'t want to',
+                '💯 Progress, not perfection',
+                '⭐ Your only limit is you'
+            ],
+            favoriteExercises: [
+                'Squats', 'Deadlifts', 'Hip thrust', 'Bulgarian splits', 
+                'Bend over dumbel row', 'Dumbel press', 'Pull up machine', 
+                'Shoulder press dumbels', 'Bicep curl staand', 'Skull crush',
+                'Side raises recht opzij met hoofdsteun', 'Side raises schuin naar voren',
+                'Landmine deadlifts', 'Landmine rotation', 'Trx pistol squats'
+            ],
+            originalExercises: [],
+            originalOrder: []
+        };
+
+        const rpeOptions = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+
+        // Load data from localStorage
+        function loadData() {
+            const savedSchemas = localStorage.getItem('krachtsport_schemas');
+            if (savedSchemas) {
+                const loadedSchemas = JSON.parse(savedSchemas);
+                Object.keys(loadedSchemas).forEach(key => {
+                    if (key !== 'basis' && key !== 'blanco') {
+                        appState.schemas[key] = loadedSchemas[key];
+                    }
+                });
+            }
+
+            const savedPreWorkout = localStorage.getItem('krachtsport_preworkout');
+            if (savedPreWorkout) {
+                appState.preWorkoutOptions = JSON.parse(savedPreWorkout);
+            }
+
+            const savedQuotes = localStorage.getItem('krachtsport_quotes');
+            if (savedQuotes) {
+                appState.motivationalQuotes = JSON.parse(savedQuotes);
+            }
+
+            const savedFavorites = localStorage.getItem('krachtsport_favorites');
+            if (savedFavorites) {
+                appState.favoriteExercises = JSON.parse(savedFavorites);
+            }
+        }
+
+        //// Save data to localStorage
+       function saveData() {
+           localStorage.setItem('krachtsport_workouts', JSON.stringify(appState.workouts));
+           localStorage.setItem('krachtsport_schemas', JSON.stringify(appState.schemas));
+           localStorage.setItem('krachtsport_preworkout', JSON.stringify(appState.preWorkoutOptions));
+           localStorage.setItem('krachtsport_quotes', JSON.stringify(appState.motivationalQuotes));
+           localStorage.setItem('krachtsport_favorites', JSON.stringify(appState.favoriteExercises));
+       }
+
+       // Initialize app
+       function initApp() {
+           loadData();
+           setTodayDate();
+           setupEventListeners();
+           populateSchemaSelect();
+           populateFavoriteExercises();
+           populatePreWorkoutFoods();
+           populateOverallGrades();
+           updateSchemaPreview();
+           updateRecentWorkouts();
+           renderSchemasList();
+           renderPreWorkoutOptions();
+           renderMotivationalQuotes();
+       }
+
+       function setTodayDate() {
+           const today = new Date().toISOString().split('T')[0];
+           document.getElementById('training-date').value = today;
+           updateDateDisplay();
+       }
+
+       function updateDateDisplay() {
+           const dateInput = document.getElementById('training-date');
+           const dateDisplay = document.getElementById('date-display');
+           const date = new Date(dateInput.value);
+           const options = { weekday: 'long', day: 'numeric', month: 'long' };
+           dateDisplay.textContent = date.toLocaleDateString('nl-NL', options);
+       }
+
+       function populateSchemaSelect() {
+           const select = document.getElementById('schema-select');
+           select.innerHTML = '';
+           Object.entries(appState.schemas).forEach(([key, schema]) => {
+               const option = document.createElement('option');
+               option.value = key;
+               option.textContent = schema.name;
+               select.appendChild(option);
+           });
+       }
+
+       function updateSchemaPreview() {
+           const schemaSelect = document.getElementById('schema-select');
+           const selectedSchema = appState.schemas[schemaSelect.value];
+           const exercisesDiv = document.getElementById('schema-exercises');
+           const previewDiv = document.getElementById('schema-preview');
+           
+           if (selectedSchema && selectedSchema.exercises.length > 0) {
+               exercisesDiv.innerHTML = selectedSchema.exercises.map(ex => `<div>• ${ex}</div>`).join('');
+               previewDiv.classList.remove('hidden');
+           } else {
+               previewDiv.classList.add('hidden');
+           }
+       }
+
+       function populateFavoriteExercises() {
+           const select = document.getElementById('favorite-exercise-select');
+           select.innerHTML = '<option value="">Kies favoriete oefening</option>';
+           appState.favoriteExercises.forEach(exercise => {
+               const option = document.createElement('option');
+               option.value = exercise;
+               option.textContent = exercise;
+               select.appendChild(option);
+           });
+       }
+
+       function populatePreWorkoutFoods() {
+           const container = document.getElementById('preworkout-foods');
+           container.innerHTML = '';
+           
+           appState.preWorkoutOptions.forEach(food => {
+               const label = document.createElement('label');
+               label.className = 'flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer';
+               
+               const checkbox = document.createElement('input');
+               checkbox.type = 'checkbox';
+               checkbox.value = food;
+               checkbox.className = 'w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500';
+               checkbox.addEventListener('change', updatePreWorkoutOther);
+               
+               const span = document.createElement('span');
+               span.className = 'text-sm font-medium text-gray-700';
+               span.textContent = food;
+               
+               label.appendChild(checkbox);
+               label.appendChild(span);
+               container.appendChild(label);
+           });
+
+           ['Niets', 'Anders'].forEach(food => {
+               const label = document.createElement('label');
+               label.className = 'flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer';
+               
+               const checkbox = document.createElement('input');
+               checkbox.type = 'checkbox';
+               checkbox.value = food;
+               checkbox.className = 'w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500';
+               checkbox.addEventListener('change', updatePreWorkoutOther);
+               
+               const span = document.createElement('span');
+               span.className = 'text-sm font-medium text-gray-700';
+               span.textContent = food;
+               
+               label.appendChild(checkbox);
+               label.appendChild(span);
+               container.appendChild(label);
+           });
+       }
+
+       function updatePreWorkoutOther() {
+           const checkboxes = document.querySelectorAll('#preworkout-foods input[type="checkbox"]');
+           const otherInput = document.getElementById('preworkout-other');
+           const andersChecked = Array.from(checkboxes).some(cb => cb.value === 'Anders' && cb.checked);
+           otherInput.classList.toggle('hidden', !andersChecked);
+       }
+
+       function populateOverallGrades() {
+           const selects = ['overall-grade', 'edit-grade'];
+           const grades = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
+           
+           selects.forEach(selectId => {
+               const select = document.getElementById(selectId);
+               if (select) {
+                   grades.forEach(grade => {
+                       const option = document.createElement('option');
+                       option.value = grade;
+                       option.textContent = `G${grade}`;
+                       select.appendChild(option);
+                   });
+               }
+           });
+       }
+
+       function getRandomQuote() {
+           if (appState.motivationalQuotes.length === 0) return '';
+           const randomIndex = Math.floor(Math.random() * appState.motivationalQuotes.length);
+           return appState.motivationalQuotes[randomIndex];
+       }
+
+       function refreshQuote() {
+           const quoteText = document.getElementById('quote-text');
+           quoteText.textContent = `"${getRandomQuote()}"`;
+       }
+
+       function getLastExerciseData(exerciseName) {
+           if (!appState.workouts.length) return null;
+           
+           for (let i = appState.workouts.length - 1; i >= 0; i--) {
+               const workout = appState.workouts[i];
+               const exercise = workout.exercises?.find(ex => ex.name === exerciseName);
+               if (exercise && exercise.sets?.length > 0) {
+                   const workingSet = exercise.sets.find(set => set.weight && !set.isWarmup);
+                   if (workingSet) {
+                       return { weight: workingSet.weight, reps: workingSet.reps };
+                   }
+               }
+           }
+           return null;
+       }
+
+       function updateRecentWorkouts() {
+           const container = document.getElementById('recent-workouts');
+           const list = document.getElementById('recent-workouts-list');
+           const autoSuggestContainer = document.getElementById('auto-suggest-container');
+
+           if (appState.workouts.length === 0) {
+               container.classList.add('hidden');
+               autoSuggestContainer.classList.add('hidden');
+               return;
+           }
+
+           container.classList.remove('hidden');
+           autoSuggestContainer.classList.remove('hidden');
+           list.innerHTML = '';
+
+           appState.workouts.slice(-3).reverse().forEach(workout => {
+               const div = document.createElement('div');
+               div.className = 'p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 cursor-pointer transition-all';
+               div.innerHTML = `
+                   <div class="flex justify-between items-center text-sm">
+                       <div>
+                           <span class="font-bold text-gray-900">Week ${workout.weekNumber}.${workout.trainingNumber}</span>
+                           <span class="ml-2 text-gray-600">${workout.weekday}</span>
+                           <div class="text-xs text-gray-500 mt-1">
+                               ${new Date(workout.date).toLocaleDateString('nl-NL', { 
+                                   day: 'numeric', 
+                                   month: 'short',
+                                   year: 'numeric'
+                               })}
+                           </div>
+                       </div>
+                       <div class="text-right">
+                           <div class="text-gray-600 font-medium">
+                               ${workout.sessionReps}r × ${workout.sessionSets}s
+                           </div>
+                           ${workout.selectedSchema ? `<div class="text-xs text-blue-600">${appState.schemas[workout.selectedSchema]?.name || workout.selectedSchema}</div>` : ''}
+                       </div>
+                   </div>
+               `;
+               div.addEventListener('click', () => switchTab('history'));
+               list.appendChild(div);
+           });
+       }
+
+       function setupEventListeners() {
+           // Tab navigation
+           document.getElementById('tab-training').addEventListener('click', () => switchTab('training'));
+           document.getElementById('tab-schemas').addEventListener('click', () => switchTab('schemas'));
+           document.getElementById('tab-history').addEventListener('click', () => switchTab('history'));
+           document.getElementById('tab-progress').addEventListener('click', () => switchTab('progress'));
+
+           // Date and schema changes
+           document.getElementById('training-date').addEventListener('change', updateDateDisplay);
+           document.getElementById('schema-select').addEventListener('change', updateSchemaPreview);
+
+           // Auto suggest and training controls
+           document.getElementById('auto-suggest-btn').addEventListener('click', autoSuggestSettings);
+           document.getElementById('start-training-btn').addEventListener('click', startTraining);
+           document.getElementById('cancel-training-btn').addEventListener('click', cancelTraining);
+           document.getElementById('save-training-btn').addEventListener('click', saveTraining);
+
+           // Exercise controls
+           document.getElementById('add-exercise-btn').addEventListener('click', () => addExercise());
+           document.getElementById('favorite-exercise-select').addEventListener('change', (e) => {
+               if (e.target.value) {
+                   addExercise(e.target.value);
+                   e.target.value = '';
+               }
+           });
+
+           // Quote refresh
+           document.getElementById('refresh-quote').addEventListener('click', refreshQuote);
+
+           // Schema management
+           document.getElementById('add-quote-btn').addEventListener('click', () => {
+               appState.motivationalQuotes.push('💪 Nieuwe motiverende tekst');
+               renderMotivationalQuotes();
+               saveData();
+           });
+
+           // Edit dialog
+           document.getElementById('save-edit-btn').addEventListener('click', saveEdit);
+           document.getElementById('cancel-edit-btn').addEventListener('click', () => {
+               document.getElementById('edit-dialog').classList.add('hidden');
+               appState.editingWorkout = null;
+           });
+
+           // Export/Import
+           document.getElementById('export-btn').addEventListener('click', exportData);
+           document.getElementById('import-file').addEventListener('change', importData);
+       }
+
+       function switchTab(tab) {
+           appState.activeTab = tab;
+
+           // Update tab buttons
+           document.querySelectorAll('[id^="tab-"]').forEach(btn => {
+               btn.className = btn.className.replace('tab-active', 'tab-inactive');
+           });
+           document.getElementById(`tab-${tab}`).className = 
+               document.getElementById(`tab-${tab}`).className.replace('tab-inactive', 'tab-active');
+
+           // Show/hide content
+           document.getElementById('training-content').classList.toggle('hidden', tab !== 'training');
+           document.getElementById('schemas-content').classList.toggle('hidden', tab !== 'schemas');
+           document.getElementById('history-content').classList.toggle('hidden', tab !== 'history');
+           document.getElementById('progress-content').classList.toggle('hidden', tab !== 'progress');
+
+           if (tab === 'history') {
+               renderWorkoutsList();
+           } else if (tab === 'progress') {
+               renderProgress();
+           }
+       }
+
+       function autoSuggestSettings() {
+           if (appState.workouts.length === 0) return;
+
+           const lastWorkout = appState.workouts[appState.workouts.length - 1];
+           const selectedDate = new Date(document.getElementById('training-date').value);
+           const lastDate = new Date(lastWorkout.date);
+           const daysDiff = Math.floor((selectedDate - lastDate) / (1000 * 60 * 60 * 24));
+
+           let suggestedWeek = lastWorkout.weekNumber;
+           let suggestedTraining = lastWorkout.trainingNumber + 1;
+           let suggestedReps = lastWorkout.sessionReps;
+
+           if (daysDiff > 6 || lastWorkout.trainingNumber >= 6) {
+               suggestedWeek = lastWorkout.weekNumber + 1;
+               suggestedTraining = 1;
+
+               switch(lastWorkout.sessionReps) {
+                   case 12: suggestedReps = 10; break;
+                   case 10: suggestedReps = 8; break;
+                   case 8: suggestedReps = 6; break;
+                   case 6: suggestedReps = 15; break;
+                   case 15: suggestedReps = 12; break;
+                   default: suggestedReps = lastWorkout.sessionReps;
+               }
+           }
+
+           document.getElementById('week-number').value = suggestedWeek;
+           document.getElementById('training-number').value = suggestedTraining;
+           document.getElementById('training-reps').value = suggestedReps;
+           document.getElementById('training-sets').value = lastWorkout.sessionSets || 3;
+           document.getElementById('training-rest').value = lastWorkout.sessionRest || 2;
+       }
+
+       function startTraining() {
+           const selectedDate = new Date(document.getElementById('training-date').value);
+           const weekNumber = parseInt(document.getElementById('week-number').value);
+           const trainingNumber = parseInt(document.getElementById('training-number').value);
+           const sessionReps = parseInt(document.getElementById('training-reps').value);
+           const sessionSets = parseInt(document.getElementById('training-sets').value);
+           const sessionRest = parseFloat(document.getElementById('training-rest').value);
+           const selectedSchemaKey = document.getElementById('schema-select').value;
+           const selectedSchema = appState.schemas[selectedSchemaKey];
+
+           const restDays = appState.workouts.length > 0 ? 
+               Math.max(0, Math.floor((selectedDate - new Date(appState.workouts[appState.workouts.length - 1].date)) / (1000 * 60 * 60 * 24)) - 1) : 
+               null;
+
+           appState.currentWorkout = {
+               id: Date.now(),
+               weekNumber,
+               trainingNumber,
+               date: document.getElementById('training-date').value,
+               weekday: selectedDate.toLocaleDateString('nl-NL', { weekday: 'long' }),
+               sessionReps,
+               sessionSets,
+               sessionRest,
+               restDays,
+               selectedSchema: selectedSchemaKey,
+               preWorkoutFoods: [],
+               preWorkoutFoodOther: '',
+               preWorkoutTiming: '',
+               exercises: [],
+               feelingBefore: '',
+               feelingAfter: '',
+               overallGrade: '',
+               notes: ''
+           };
+
+           // Store original for change detection
+           appState.originalExercises = selectedSchema.exercises.slice();
+           appState.originalOrder = selectedSchema.exercises.slice();
+
+           // Add initial exercises from schema
+           if (selectedSchema && selectedSchema.exercises.length > 0) {
+               selectedSchema.exercises.forEach(exerciseName => {
+                   addExercise(exerciseName);
+               });
+           }
+
+           showTrainingScreen();
+       }
+
+       function showTrainingScreen() {
+           document.getElementById('training-setup').classList.add('hidden');
+           document.getElementById('training-screen').classList.remove('hidden');
+
+           const workout = appState.currentWorkout;
+           document.getElementById('workout-title').textContent = `Week ${workout.weekNumber}.${workout.trainingNumber}`;
+           document.getElementById('workout-date').textContent = 
+               `${workout.weekday} ${new Date(workout.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}`;
+           document.getElementById('workout-setup').textContent = 
+               `${workout.sessionReps} reps × ${workout.sessionSets} sets × ${workout.sessionRest} min rust`;
+           document.getElementById('workout-schema').textContent = 
+               `Schema: ${appState.schemas[workout.selectedSchema].name}`;
+
+           if (workout.restDays !== null && workout.restDays >= 0) {
+               const restDaysInfo = document.getElementById('rest-days-info');
+               restDaysInfo.textContent = `${workout.restDays} rustdag${workout.restDays !== 1 ? 'en' : ''} sinds vorige training`;
+               restDaysInfo.classList.remove('hidden');
+           }
+
+           refreshQuote();
+           renderExercises();
+       }
+
+       function cancelTraining() {
+           appState.currentWorkout = null;
+           appState.originalExercises = [];
+           appState.originalOrder = [];
+           document.getElementById('training-setup').classList.remove('hidden');
+           document.getElementById('training-screen').classList.add('hidden');
+           setTodayDate();
+       }
+
+       function addExercise(exerciseName = '') {
+           if (!appState.currentWorkout) return;
+
+           const lastData = getLastExerciseData(exerciseName);
+           
+           const exercise = {
+               id: Date.now() + Math.random(),
+               name: exerciseName || 'Nieuwe Oefening',
+               lastData: lastData,
+               sets: [{
+                   id: Date.now() + Math.random(),
+                   reps: appState.currentWorkout.sessionReps.toString(),
+                   weight: '',
+                   rpe: 8,
+                   isSkipped: false
+               }]
+           };
+
+           appState.currentWorkout.exercises.push(exercise);
+           renderExercises();
+       }
+
+       function renderExercises() {
+           const container = document.getElementById('exercises-container');
+           container.innerHTML = '';
+
+           appState.currentWorkout.exercises.forEach((exercise, exerciseIndex) => {
+               const exerciseDiv = document.createElement('div');
+               exerciseDiv.className = 'exercise-card rounded-2xl p-6 bg-white';
+               
+               exerciseDiv.innerHTML = `
+                   <div class="flex justify-between items-center mb-4">
+                       <div class="flex items-center gap-3 flex-1">
+                           <div class="flex-1">
+                               <input type="text" value="${exercise.name}" onchange="updateExerciseName('${exercise.id}', this.value)" class="text-xl font-bold bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 outline-none w-full">
+                               ${exercise.lastData ? `<p class="text-sm text-gray-500 mt-1">(laatste: ${exercise.lastData.reps} reps @ ${exercise.lastData.weight}kg)</p>` : ''}
+                           </div>
+                       </div>
+                       
+                       <div class="flex items-center gap-2 ml-4">
+                           <div class="flex flex-col gap-1">
+                               ${exerciseIndex > 0 ? `<button onclick="moveExercise('${exercise.id}', 'up')" class="text-gray-500 hover:text-gray-700 p-1 rounded transition-colors text-lg" title="Naar boven">↑</button>` : ''}
+                               ${exerciseIndex < appState.currentWorkout.exercises.length - 1 ? `<button onclick="moveExercise('${exercise.id}', 'down')" class="text-gray-500 hover:text-gray-700 p-1 rounded transition-colors text-lg" title="Naar beneden">↓</button>` : ''}
+                           </div>
+                           
+                           <button onclick="deleteExercise('${exercise.id}')" class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors">
+                               🗑️
+                           </button>
+                       </div>
+                   </div>
+
+                   <div class="space-y-4">
+                       <div class="grid grid-cols-3 gap-2 text-sm font-semibold text-gray-600 px-2">
+                           <div>Reps</div>
+                           <div>Gewicht (kg)</div>
+                           <div>RPE</div>
+                       </div>
+                       <div id="sets-${exercise.id}"></div>
+                       <button onclick="addSet('${exercise.id}')" class="w-full bg-gray-600 text-white py-3 rounded-lg hover:bg-gray-700 transition-all font-semibold">
+                           + Set Toevoegen
+                       </button>
+                   </div>
+               `;
+               
+               container.appendChild(exerciseDiv);
+               renderSets(exercise.id);
+           });
+       }
+
+       function renderSets(exerciseId) {
+           const exercise = appState.currentWorkout.exercises.find(ex => ex.id == exerciseId);
+           const setsContainer = document.getElementById(`sets-${exerciseId}`);
+           setsContainer.innerHTML = '';
+
+           exercise.sets.forEach((set, index) => {
+               if (set.isSkipped) return;
+               
+               const setDiv = document.createElement('div');
+               setDiv.className = 'set-row grid grid-cols-3 gap-2 items-center p-3 rounded-lg bg-gray-50 border border-gray-200 transition-all';
+               
+               setDiv.innerHTML = `
+                   <input type="number" value="${set.reps}" onchange="updateSet('${exerciseId}', '${set.id}', 'reps', this.value)" placeholder="12" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center bg-white">
+                   <input type="number" step="0.5" value="${set.weight}" onchange="updateSet('${exerciseId}', '${set.id}', 'weight', this.value)" placeholder="kg" class="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center bg-white">
+                   <div class="flex items-center gap-1">
+                       <select onchange="updateSet('${exerciseId}', '${set.id}', 'rpe', this.value)" class="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-medium text-center bg-white">
+                           ${rpeOptions.map(rpe => `<option value="${rpe}" ${set.rpe == rpe ? 'selected' : ''}>G${rpe}</option>`).join('')}
+                       </select>
+                       <button onclick="deleteSet('${exerciseId}', '${set.id}')" class="text-red-600 hover:text-red-800 p-1 rounded-lg hover:bg-red-50 transition-colors">
+                           🗑️
+                       </button>
+                   </div>
+               `;
+               
+               setsContainer.appendChild(setDiv);
+           });
+       }
+
+       function updateExerciseName(exerciseId, newName) {
+           const exercise = appState.currentWorkout.exercises.find(ex => ex.id == exerciseId);
+           if (exercise) exercise.name = newName;
+       }
+
+       function updateSet(exerciseId, setId, field, value) {
+           const exercise = appState.currentWorkout.exercises.find(ex => ex.id == exerciseId);
+           const set = exercise.sets.find(s => s.id == setId);
+           if (set) set[field] = value;
+       }
+
+       function addSet(exerciseId) {
+           const exercise = appState.currentWorkout.exercises.find(ex => ex.id == exerciseId);
+           if (!exercise || exercise.sets.length === 0) return;
+
+           const lastSet = exercise.sets[exercise.sets.length - 1];
+           const newSet = {
+               id: Date.now() + Math.random(),
+               reps: lastSet.reps,
+               weight: lastSet.weight,
+               rpe: lastSet.rpe,
+               isSkipped: false
+           };
+
+           exercise.sets.push(newSet);
+           renderSets(exerciseId);
+       }
+
+       function deleteSet(exerciseId, setId) {
+           const exercise = appState.currentWorkout.exercises.find(ex => ex.id == exerciseId);
+           exercise.sets = exercise.sets.filter(set => set.id != setId);
+           renderSets(exerciseId);
+       }
+
+       function deleteExercise(exerciseId) {
+           appState.currentWorkout.exercises = appState.currentWorkout.exercises.filter(ex => ex.id != exerciseId);
+           renderExercises();
+       }
+
+       function moveExercise(exerciseId, direction) {
+           const exercises = [...appState.currentWorkout.exercises];
+           const currentIndex = exercises.findIndex(ex => ex.id == exerciseId);
+           
+           if (currentIndex === -1) return;
+           
+           let newIndex;
+           if (direction === 'up' && currentIndex > 0) {
+               newIndex = currentIndex - 1;
+           } else if (direction === 'down' && currentIndex < exercises.length - 1) {
+               newIndex = currentIndex + 1;
+           } else {
+               return;
+           }
+           
+           [exercises[currentIndex], exercises[newIndex]] = [exercises[newIndex], exercises[currentIndex]];
+           
+           appState.currentWorkout.exercises = exercises;
+           renderExercises();
+       }
+
+       function exercisesChanged() {
+           const currentExerciseNames = appState.currentWorkout.exercises.map(ex => ex.name);
+           if (currentExerciseNames.length !== appState.originalExercises.length) return true;
+           return !currentExerciseNames.every(name => appState.originalExercises.includes(name));
+       }
+
+       function orderChanged() {
+           const currentOrder = appState.currentWorkout.exercises.map(ex => ex.name);
+           if (currentOrder.length !== appState.originalOrder.length) return false;
+           return !currentOrder.every((name, index) => appState.originalOrder[index] === name);
+       }
+
+       function showSaveDialog() {
+           const dialog = document.getElementById('save-dialog');
+           const title = document.getElementById('save-dialog-title');
+           const text = document.getElementById('save-dialog-text');
+           const buttons = document.getElementById('save-dialog-buttons');
+           
+           const exercisesHaveChanged = exercisesChanged();
+           const orderHasChanged = orderChanged();
+           const schemaName = appState.schemas[appState.currentWorkout.selectedSchema].name;
+           
+           if (exercisesHaveChanged && orderHasChanged) {
+               title.textContent = 'Oefeningen en volgorde aangepast';
+               text.textContent = `Je hebt zowel de oefeningen als de volgorde in ${schemaName} aangepast. Wat wil je doen?`;
+               
+               buttons.innerHTML = `
+                   <button onclick="handleSaveDialogChoice('update')" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-all font-semibold">
+                       ${schemaName} volledig updaten
+                   </button>
+                   <div class="flex gap-2">
+                       <select id="save-as-select" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                           <option value="">Kies workout slot</option>
+                           ${Object.entries(appState.schemas).filter(([key, schema]) => 
+                               !schema.locked && key !== appState.currentWorkout.selectedSchema
+                           ).map(([key, schema]) => `<option value="${key}">${schema.name}</option>`).join('')}
+                       </select>
+                       <button onclick="handleSaveDialogChoice('saveAs')" class="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-all font-semibold">
+                           Opslaan als
+                       </button>
+                   </div>
+                   <button onclick="handleSaveDialogChoice('noSave')" class="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-all font-semibold">
+                       Alleen training opslaan
+                   </button>
+               `;
+           } else if (exercisesHaveChanged) {
+               title.textContent = 'Oefeningen aangepast';
+               text.textContent = `Je hebt de oefeningen in ${schemaName} aangepast. Wat wil je doen?`;
+               
+               buttons.innerHTML = `
+                   <button onclick="handleSaveDialogChoice('update')" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-all font-semibold">
+                       ${schemaName} updaten
+                   </button>
+                   <div class="flex gap-2">
+                       <select id="save-as-select" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                           <option value="">Kies workout slot</option>
+                           ${Object.entries(appState.schemas).filter(([key, schema]) => 
+                               !schema.locked && key !== appState.currentWorkout.selectedSchema
+                           ).map(([key, schema]) => `<option value="${key}">${schema.name}</option>`).join('')}
+                       </select>
+                       <button onclick="handleSaveDialogChoice('saveAs')" class="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-all font-semibold">
+                           Opslaan als
+                       </button>
+                   </div>
+                   <button onclick="handleSaveDialogChoice('noSave')" class="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-all font-semibold">
+                       Alleen training opslaan
+                   </button>
+               `;
+           } else {
+               title.textContent = 'Volgorde aangepast';
+               text.textContent = `Je hebt de volgorde van oefeningen in ${schemaName} gewijzigd. Wil je dit opslaan?`;
+               
+               buttons.innerHTML = `
+                   <button onclick="handleSaveDialogChoice('update')" class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-all font-semibold">
+                       ${schemaName} updaten met nieuwe volgorde
+                   </button>
+                   <button onclick="handleSaveDial
+<button onclick="handleSaveDialogChoice('noSave')" class="w-full bg-gray-500 text-white py-3 rounded-lg hover:bg-gray-600 transition-all font-semibold">
+                       Alleen training opslaan (schema volgorde behouden)
+                   </button>
+               `;
+           }
+           
+           dialog.classList.remove('hidden');
+       }
+
+       function handleSaveDialogChoice(choice) {
+           const dialog = document.getElementById('save-dialog');
+           const saveAsSelect = document.getElementById('save-as-select');
+           
+           if (choice === 'update') {
+               const newExerciseNames = appState.currentWorkout.exercises.map(ex => ex.name);
+               appState.schemas[appState.currentWorkout.selectedSchema].exercises = newExerciseNames;
+               saveData();
+               renderSchemasList();
+               populateSchemaSelect();
+           } else if (choice === 'saveAs') {
+               const targetSchema = saveAsSelect?.value;
+               if (targetSchema) {
+                   const newExerciseNames = appState.currentWorkout.exercises.map(ex => ex.name);
+                   appState.schemas[targetSchema].exercises = newExerciseNames;
+                   saveData();
+                   renderSchemasList();
+                   populateSchemaSelect();
+               }
+           }
+           
+           dialog.classList.add('hidden');
+           finishSaveWorkout();
+       }
+
+       function saveTraining() {
+           if (!appState.currentWorkout) return;
+
+           // Collect form data
+           const checkboxes = document.querySelectorAll('#preworkout-foods input[type="checkbox"]:checked');
+           appState.currentWorkout.preWorkoutFoods = Array.from(checkboxes).map(cb => cb.value);
+           appState.currentWorkout.preWorkoutFoodOther = document.getElementById('preworkout-other').value;
+           appState.currentWorkout.preWorkoutTiming = document.getElementById('preworkout-timing').value;
+           appState.currentWorkout.feelingBefore = document.getElementById('feeling-before').value;
+           appState.currentWorkout.feelingAfter = document.getElementById('feeling-after').value;
+           appState.currentWorkout.overallGrade = document.getElementById('overall-grade').value;
+           appState.currentWorkout.notes = document.getElementById('training-notes').value;
+
+           appState.workouts.push(appState.currentWorkout);
+
+           // Check if schema changed and show dialog if needed
+           const exercisesHaveChanged = exercisesChanged();
+           const orderHasChanged = orderChanged();
+           
+           if (appState.currentWorkout.selectedSchema !== 'basis' && 
+               appState.currentWorkout.selectedSchema !== 'blanco' && 
+               (exercisesHaveChanged || orderHasChanged)) {
+               showSaveDialog();
+           } else {
+               finishSaveWorkout();
+           }
+       }
+
+       function finishSaveWorkout() {
+           saveData();
+           appState.currentWorkout = null;
+           appState.originalExercises = [];
+           appState.originalOrder = [];
+           
+           document.getElementById('training-setup').classList.remove('hidden');
+           document.getElementById('training-screen').classList.add('hidden');
+           
+           setTodayDate();
+           updateRecentWorkouts();
+           
+           alert('Training opgeslagen!');
+       }
+
+       // Schema management functions
+       function renderSchemasList() {
+           const container = document.getElementById('schemas-list');
+           container.innerHTML = '';
+
+           Object.entries(appState.schemas).forEach(([key, schema]) => {
+               const div = document.createElement('div');
+               div.className = 'border border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all';
+               
+               div.innerHTML = `
+                   <div class="flex justify-between items-center mb-4">
+                       <div class="flex-1">
+                           ${schema.locked ? 
+                               `<h3 class="text-lg font-bold text-gray-900">${schema.name}</h3>` :
+                               `<input type="text" value="${schema.name}" onchange="updateSchemaName('${key}', this.value)" class="text-lg font-bold bg-transparent border-b-2 border-transparent hover:border-gray-300 focus:border-blue-500 outline-none">`
+                           }
+                           <p class="text-sm text-gray-500 mt-1">
+                               ${schema.exercises.length} oefeningen
+                               ${schema.locked ? '<span class="ml-2 text-orange-600">(vast schema)</span>' : ''}
+                           </p>
+                       </div>
+                   </div>
+                   
+                   ${schema.exercises.length > 0 ? `
+                       <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                           ${schema.exercises.map((exercise, index) => `
+                               <div class="text-sm text-gray-700 bg-gray-50 px-3 py-2 rounded-lg">
+                                   • ${exercise}
+                               </div>
+                           `).join('')}
+                       </div>
+                   ` : `
+                       <div class="text-center py-4 text-gray-500 italic">
+                           Nog geen oefeningen opgeslagen
+                       </div>
+                   `}
+               `;
+               
+               container.appendChild(div);
+           });
+       }
+
+       function updateSchemaName(schemaKey, newName) {
+           appState.schemas[schemaKey].name = newName;
+           populateSchemaSelect();
+           saveData();
+       }
+
+       function renderPreWorkoutOptions() {
+           const container = document.getElementById('preworkout-options-grid');
+           container.innerHTML = '';
+
+           appState.preWorkoutOptions.forEach((option, index) => {
+               const input = document.createElement('input');
+               input.type = 'text';
+               input.value = option;
+               input.className = 'p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none';
+               input.placeholder = `Optie ${index + 1}`;
+               input.addEventListener('change', (e) => {
+                   appState.preWorkoutOptions[index] = e.target.value;
+                   saveData();
+               });
+               
+               container.appendChild(input);
+           });
+       }
+
+       function renderMotivationalQuotes() {
+           const container = document.getElementById('quotes-container');
+           container.innerHTML = '';
+
+           if (appState.motivationalQuotes.length === 0) {
+               container.innerHTML = `
+                   <div class="text-center py-8 text-gray-500 italic">
+                       Nog geen motiverende teksten toegevoegd
+                   </div>
+               `;
+               return;
+           }
+
+           appState.motivationalQuotes.forEach((quote, index) => {
+               const div = document.createElement('div');
+               div.className = 'flex gap-2 items-center';
+               
+               div.innerHTML = `
+                   <input type="text" value="${quote}" onchange="updateQuote(${index}, this.value)" class="flex-1 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="Motiverende tekst met emoji...">
+                   <button onclick="deleteQuote(${index})" class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors">
+                       🗑️
+                   </button>
+               `;
+               
+               container.appendChild(div);
+           });
+       }
+
+       function updateQuote(index, newQuote) {
+           appState.motivationalQuotes[index] = newQuote;
+           saveData();
+       }
+
+       function deleteQuote(index) {
+           appState.motivationalQuotes.splice(index, 1);
+           renderMotivationalQuotes();
+           saveData();
+       }
+
+       // History functions
+       function renderWorkoutsList() {
+           const container = document.getElementById('workouts-list');
+           
+           if (appState.workouts.length === 0) {
+               container.innerHTML = `
+                   <div class="text-center py-12 text-gray-500">
+                       <p class="text-lg font-medium">Nog geen trainingen opgeslagen</p>
+                       <p class="text-sm">Start je eerste training om een log op te bouwen</p>
+                   </div>
+               `;
+               return;
+           }
+
+           container.innerHTML = '';
+           
+           appState.workouts.slice().reverse().forEach(workout => {
+               const div = document.createElement('div');
+               div.className = 'border border-gray-200 rounded-xl p-6 hover:border-gray-300 transition-all mb-4';
+               
+               let exercisesHtml = '';
+               workout.exercises?.forEach(exercise => {
+                   const validSets = exercise.sets?.filter(set => !set.isSkipped) || [];
+                   let setsHtml = '';
+                   
+                   validSets.forEach((set, index) => {
+                       const plannedReps = workout.sessionReps;
+                       const actualReps = parseInt(set.reps);
+                       const plannedSets = workout.sessionSets;
+                       const actualSetNumber = index + 1;
+                       
+                       let textColor = 'text-gray-700';
+                       if (actualReps < plannedReps) {
+                           textColor = 'text-red-600 font-semibold';
+                       } else if (actualReps > plannedReps) {
+                           textColor = 'text-green-600 font-semibold';
+                       } else if (actualSetNumber > plannedSets) {
+                           textColor = 'text-green-600 font-semibold';
+                       }
+                       
+                       setsHtml += `
+                           <div class="grid grid-cols-3 gap-2 text-sm py-1 ${textColor}">
+                               <div>${set.reps}</div>
+                               <div>${set.weight || '-'}</div>
+                               <div>G${set.rpe}</div>
+                           </div>
+                       `;
+                   });
+
+                   exercisesHtml += `
+                       <div class="p-3 bg-gray-50 rounded-lg border border-gray-200 mb-3">
+                           <h5 class="font-semibold text-gray-900 mb-2">${exercise.name}</h5>
+                           <div class="grid grid-cols-3 gap-2 text-xs font-semibold text-gray-600 mb-2">
+                               <div>Reps</div>
+                               <div>Gewicht (kg)</div>
+                               <div>RPE</div>
+                           </div>
+                           ${setsHtml}
+                       </div>
+                   `;
+               });
+
+               div.innerHTML = `
+                   <div class="flex justify-between items-center mb-4">
+                       <div>
+                           <h3 class="text-lg font-bold text-gray-900">Week ${workout.weekNumber}.${workout.trainingNumber}</h3>
+                           <p class="text-gray-600">${workout.weekday} ${new Date(workout.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                           ${workout.selectedSchema ? `<p class="text-sm text-blue-600">Schema: ${appState.schemas[workout.selectedSchema]?.name || workout.selectedSchema}</p>` : ''}
+                       </div>
+                       <div class="flex items-center gap-3">
+                           <div class="text-right">
+                               <div class="text-sm text-gray-600">${workout.sessionReps}r × ${workout.sessionSets}s × ${workout.sessionRest}min</div>
+                               ${workout.overallGrade ? `<div class="text-lg font-bold text-blue-600">G${workout.overallGrade}</div>` : ''}
+                               ${workout.restDays !== null && workout.restDays >= 0 ? `<div class="text-xs text-orange-600">${workout.restDays} rustdag${workout.restDays !== 1 ? 'en' : ''}</div>` : ''}
+                           </div>
+                           <div class="flex flex-col gap-2">
+                               <button onclick="editWorkout('${workout.id}')" class="text-blue-600 hover:text-blue-800 p-2 rounded-lg hover:bg-blue-50 transition-colors" title="Bewerken">
+                                   ✏️
+                               </button>
+                               <button onclick="deleteWorkout('${workout.id}')" class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors" title="Verwijderen">
+                                   🗑️
+                               </button>
+                           </div>
+                       </div>
+                   </div>
+
+                   ${(workout.preWorkoutFoods?.length > 0 || workout.preWorkoutTiming) ? `
+                       <div class="mb-4 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                           <h4 class="font-semibold text-gray-900 mb-2">Pre-workout</h4>
+                           ${workout.preWorkoutFoods?.length > 0 ? `<p class="text-sm text-gray-700"><strong>Voeding:</strong> ${workout.preWorkoutFoods.join(', ')}${workout.preWorkoutFoodOther ? ` (${workout.preWorkoutFoodOther})` : ''}</p>` : ''}
+                           ${workout.preWorkoutTiming ? `<p class="text-sm text-gray-700"><strong>Timing:</strong> ${workout.preWorkoutTiming} minuten ervoor</p>` : ''}
+                       </div>
+                   ` : ''}
+
+                   ${workout.feelingBefore ? `
+                       <div class="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                           <h4 class="font-semibold text-gray-900 mb-2">Gevoel voor training</h4>
+                           <p class="text-sm text-gray-700">${workout.feelingBefore}</p>
+                       </div>
+                   ` : ''}
+
+                   <div class="mb-4">
+                       <h4 class="font-semibold text-gray-900 mb-3">Oefeningen</h4>
+                       ${exercisesHtml}
+                   </div>
+
+                   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                       ${workout.feelingAfter ? `
+                           <div class="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                               <h4 class="font-semibold text-gray-900 mb-2">Gevoel na training</h4>
+                               <p class="text-sm text-gray-700">${workout.feelingAfter}</p>
+                           </div>
+                       ` : ''}
+                       ${workout.notes ? `
+                           <div class="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                               <h4 class="font-semibold text-gray-900 mb-2">Opmerkingen</h4>
+                               <p class="text-sm text-gray-700">${workout.notes}</p>
+                           </div>
+                       ` : ''}
+                   </div>
+               `;
+               
+               container.appendChild(div);
+           });
+       }
+
+       function editWorkout(workoutId) {
+           const workout = appState.workouts.find(w => w.id == workoutId);
+           if (!workout) return;
+           
+           appState.editingWorkout = workout;
+           
+           document.getElementById('edit-date').value = workout.date;
+           document.getElementById('edit-week').value = workout.weekNumber;
+           document.getElementById('edit-training').value = workout.trainingNumber;
+           document.getElementById('edit-grade').value = workout.overallGrade || '';
+           document.getElementById('edit-notes').value = workout.notes || '';
+           
+           document.getElementById('edit-dialog').classList.remove('hidden');
+       }
+
+       function saveEdit() {
+           if (!appState.editingWorkout) return;
+           
+           appState.editingWorkout.date = document.getElementById('edit-date').value;
+           appState.editingWorkout.weekNumber = parseInt(document.getElementById('edit-week').value);
+           appState.editingWorkout.trainingNumber = parseInt(document.getElementById('edit-training').value);
+           appState.editingWorkout.overallGrade = document.getElementById('edit-grade').value;
+           appState.editingWorkout.notes = document.getElementById('edit-notes').value;
+           appState.editingWorkout.weekday = new Date(appState.editingWorkout.date).toLocaleDateString('nl-NL', { weekday: 'long' });
+           
+           saveData();
+           renderWorkoutsList();
+           
+           document.getElementById('edit-dialog').classList.add('hidden');
+           appState.editingWorkout = null;
+       }
+
+       function deleteWorkout(workoutId) {
+           if (confirm('Weet je zeker dat je deze training wilt verwijderen?')) {
+               appState.workouts = appState.workouts.filter(w => w.id != workoutId);
+               saveData();
+               renderWorkoutsList();
+               updateRecentWorkouts();
+           }
+       }
+
+       // Progress functions
+       function renderProgress() {
+           const container = document.getElementById('progress-charts');
+           
+           if (appState.workouts.length === 0) {
+               container.innerHTML = `
+                   <div class="text-center py-12 text-gray-500">
+                       <p class="text-lg font-medium">📈</p>
+                       <p class="text-lg font-medium">Nog geen trainingsdata</p>
+                       <p class="text-sm">Start een training om je progressie te kunnen volgen</p>
+                   </div>
+               `;
+               return;
+           }
+
+           const workoutsWithGrades = appState.workouts.filter(w => w.overallGrade);
+           
+           if (workoutsWithGrades.length === 0) {
+               container.innerHTML = `
+                   <div class="text-center py-12 text-gray-500">
+                       <p class="text-lg font-medium">Geen cijfers beschikbaar</p>
+                       <p class="text-sm">Geef je trainingen een cijfer om progressie te zien</p>
+                   </div>
+               `;
+               return;
+           }
+
+           let progressHtml = `
+               <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-6 border border-purple-200">
+                   <h3 class="text-lg font-bold text-gray-900 mb-4">Overall Training Cijfers</h3>
+                   <div class="space-y-3">
+           `;
+
+           workoutsWithGrades.slice(-10).forEach(workout => {
+               const grade = parseFloat(workout.overallGrade);
+               const percentage = grade * 10;
+               const color = grade >= 7 ? 'bg-green-500' : grade >= 5 ? 'bg-yellow-500' : 'bg-red-500';
+               
+               progressHtml += `
+                   <div class="flex items-center gap-3">
+                       <div class="text-sm text-gray-600 w-20">Week ${workout.weekNumber}.${workout.trainingNumber}</div>
+                       <div class="flex-1 bg-gray-200 rounded-full h-4 relative">
+                           <div class="${color} h-4 rounded-full transition-all" style="width: ${percentage}%"></div>
+                       </div>
+                       <div class="text-sm font-bold text-gray-900 w-8">G${grade}</div>
+                       <div class="text-xs text-gray-500 w-20">${workout.date}</div>
+                   </div>
+               `;
+           });
+
+           const averageGrade = workoutsWithGrades.reduce((sum, w) => sum + parseFloat(w.overallGrade), 0) / workoutsWithGrades.length;
+
+           progressHtml += `
+                   </div>
+                   <div class="mt-4 p-3 bg-white rounded-lg border border-purple-200">
+                       <div class="text-sm text-gray-600">
+                           Gemiddelde: <span class="font-bold text-purple-600">G${averageGrade.toFixed(1)}</span>
+                       </div>
+                   </div>
+               </div>
+               
+               <div class="text-center py-8 text-gray-500 mt-6">
+                   <p class="text-lg font-medium">1RM progressie grafieken komen binnenkort</p>
+                   <p class="text-sm">Train meer om gedetailleerde progressie te zien</p>
+               </div>
+           `;
+
+           container.innerHTML = progressHtml;
+       }
+
+       // Export/Import functions
+       function exportData() {
+           const data = {
+               workouts: appState.workouts,
+               schemas: appState.schemas,
+               preWorkoutOptions: appState.preWorkoutOptions,
+               motivationalQuotes: appState.motivationalQuotes,
+               favoriteExercises: appState.favoriteExercises,
+               exportDate: new Date().toISOString(),
+               version: '2.2'
+           };
+
+           const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+           const url = URL.createObjectURL(blob);
+           const link = document.createElement('a');
+           link.href = url;
+           link.download = `krachtsport-backup-${new Date().toISOString().split('T')[0]}.json`;
+           document.body.appendChild(link);
+           link.click();
+           document.body.removeChild(link);
+           URL.revokeObjectURL(url);
+       }
+
+       function importData(event) {
+           const file = event.target.files[0];
+           if (!file) return;
+
+           const reader = new FileReader();
+           reader.onload = (e) => {
+               try {
+                   const data = JSON.parse(e.target.result);
+                   if (data.workouts && Array.isArray(data.workouts)) {
+                       appState.workouts = data.workouts;
+                   }
+                   if (data.schemas) {
+                       Object.keys(data.schemas).forEach(key => {
+                           if (key !== 'basis' && key !== 'blanco') {
+                               appState.schemas[key] = data.schemas[key];
+                           }
+                       });
+                   }
+                   if (data.preWorkoutOptions && Array.isArray(data.preWorkoutOptions)) {
+                       appState.preWorkoutOptions = data.preWorkoutOptions;
+                   }
+                   if (data.motivationalQuotes && Array.isArray(data.motivationalQuotes)) {
+                       appState.motivationalQuotes = data.motivationalQuotes;
+                   }
+                   if (data.favoriteExercises && Array.isArray(data.favoriteExercises)) {
+                       appState.favoriteExercises = data.favoriteExercises;
+                   }
+                   
+                   saveData();
+                   populateSchemaSelect();
+                   populateFavoriteExercises();
+                   populatePreWorkoutFoods();
+                   updateSchemaPreview();
+                   updateRecentWorkouts();
+                   renderSchemasList();
+                   renderPreWorkoutOptions();
+                   renderMotivationalQuotes();
+                   
+                   alert(`Data succesvol geïmporteerd! ${data.workouts?.length || 0} trainingen hersteld.`);
+               } catch (error) {
+                   alert('Fout bij het importeren van data. Controleer of het bestand correct is.');
+               }
+           };
+           reader.readAsText(file);
+           event.target.value = '';
+       }
+
+       // Initialize app when page loads
+       document.addEventListener('DOMContentLoaded', initApp);
+   </script>
+</body>
+</html>
